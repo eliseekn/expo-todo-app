@@ -1,91 +1,159 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { 
     Keyboard, 
     KeyboardAvoidingView, 
     ScrollView, 
-    Text,
+    Text, 
     Platform, 
     TextInput, 
     TouchableOpacity, 
     View
 } from 'react-native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import AppStyle from './src/Styles/AppStyle'
 import Todo from './src/Components/Todo'
 
-export default function App() {
-    const [todo, setTodo] = useState()
-    const [todoItems, setTodoItems] = useState([])
-    const [todoCompleted, setTodoCompleted] = useState([])
+const App = () => {
+    const STORAGE_KEY = 'todoList'
+
+    const [todo, setTodo] = useState({})
+    const [todoList, setTodoList] = useState([])
     const [todoAction, setTodoAction] = useState('+')
     const [todoIndex, setTodoIndex] = useState(0)
     const [page, setPage] = useState('todos')
 
+    useEffect(() => {
+        const getTodoList = async () => {
+            try {
+                const todoList = await AsyncStorage.getItem(STORAGE_KEY)
+    
+                if (todoList !== null) {
+                    setTodoList(JSON.parse(todoList))
+                }
+            } catch (err) {
+                console.log(err)
+            }
+        }
+        
+        getTodoList()
+    }, [])
+
+    const saveTodoList = async (_todoList) => {
+        try {
+            if (_todoList) {
+                setTodoList(_todoList)
+                await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(_todoList))
+            }
+        } catch (err) {
+            console.log(err)
+        }
+    }
+
     const handleReset = () => {
         setTodoAction('+')
-        setTodo('')
+        setTodo({'description': '', 'completed': false})
         setTodoIndex(0)
     }
 
     const handleChangeText = (_todo) => {
-        setTodo(_todo)
-
         if (_todo === '') {
             return handleReset()
         }
+
+        setTodo({'description': _todo, 'completed': false})
     }
 
-    const handleAction = () => {
+    const handleAdd = async () => {
         Keyboard.dismiss()
-        
         setPage('todos')
 
-        if (!todo) {
-            return handleReset()
+        if (!todo.description) {
+            return
         }
 
-        if (todoAction === '+') {
-            setTodoItems([...todoItems, todo])
-        }
-        
-        else {
-            let todos = todoItems.map((_todo, index) => {
-                if (index === todoIndex) {
-                    return todo
-                }
-    
-                return _todo
-            })
-    
-            setTodoItems(todos)
-        }
-        
+        saveTodoList([...todoList, todo])
+
         return handleReset()
     }
 
-    const handleEdit = (index, todo) => {
+    const handleUpdate = async () => {
+        Keyboard.dismiss()
+        setPage('todos')
+
+        if (!todo.description) {
+            return
+        }
+
+        let _todoList = todoList.map((_todo, index) => {
+            if (index === todoIndex) {
+                return todo
+            }
+
+            return _todo
+        })
+
+        saveTodoList(_todoList)
+
+        return handleReset()
+    }
+
+    const handleEdit = (index, _todo) => {
         if (page === 'todos') {
-            setTodo(todo)
+            setTodo({'description': _todo, 'completed': false})
             setTodoIndex(index)
             setTodoAction('!')
         }
     }
 
-    const handleCompleted = (index) => {
-        if (page === 'todos') {
-            let todos = [...todoItems]
-            let todosCompleted = todos.splice(index, 1)
+    const handleCompleted = async (index) => {
+        let _todoList = todoList.map((_todo, _index) => {
+            if (index === _index) {
+                _todo.completed = true
+            }
 
-            setTodoItems(todos)
-            setTodoCompleted([...todoCompleted, todosCompleted])
+            return _todo
+        })
 
-            return handleReset()
-        }
-
-        let todosCompleted = [...todoCompleted]
-        todosCompleted.splice(index, 1)
-        setTodoCompleted(todosCompleted)
+        saveTodoList(_todoList)
 
         return handleReset()
+    }
+
+    const handleDelete = async (index) => {
+        let _todoList = [...todoList]
+        _todoList.splice(index, 1)
+
+        saveTodoList(_todoList)
+
+        return handleReset()
+    }
+
+    const handleDisplay = (_completed = false) => {
+        let _todoList = todoList.map(_todo => {
+            if (_todo.completed === _completed) {
+                return _todo
+            }
+        })
+
+        return _todoList.map((_todo, index) => {
+            if (_todo) {
+                return (
+                    <Todo
+                        key={index}
+                        todo={_todo.description}
+                        page={page}
+                        handleEdit={() => handleEdit(index, _todo.description)}
+                        handleCompleted={() => handleCompleted(index)}
+                        handleDelete={() => handleDelete(index)}
+                    />
+                )
+            }
+        })
+    }
+
+    const handleCount = (_completed = false) => {
+        let _todoList = todoList.filter(_todo => _todo.completed === _completed)
+        return _todoList.length
     }
 
     return (
@@ -95,13 +163,13 @@ export default function App() {
             <View style={AppStyle.tabs}>
                 <TouchableOpacity activeOpacity={.4} onPress={() => setPage('todos')}>
                     <Text style={[AppStyle.tabTitle, page === 'todos' ? AppStyle.activeTab : AppStyle.inactiveTab]}>
-                        Todos ({todoItems.length})
+                        Todos ({ handleCount() })
                     </Text>
                 </TouchableOpacity>
             
                 <TouchableOpacity activeOpacity={.4} onPress={() => setPage('completed')}>
                     <Text style={[AppStyle.tabTitle, page === 'completed' ? AppStyle.activeTab : AppStyle.inactiveTab]}>
-                        Completed ({todoCompleted.length})
+                        Completed ({ handleCount(true) })
                     </Text>
                 </TouchableOpacity>
             </View>
@@ -109,30 +177,9 @@ export default function App() {
             <ScrollView>
                 <View style={AppStyle.todosList}>
                     {
-                        page === 'todos' ?
-                            todoItems.map((todo, index) => {
-                                return (
-                                    <Todo
-                                        key={index}
-                                        todo={todo}
-                                        page={page}
-                                        handleEdit={() => handleEdit(index, todo)}
-                                        handleCompleted={() => handleCompleted(index)}
-                                    />
-                                )
-                            }) :
-
-                            todoCompleted.map((todo, index) => {
-                                return (
-                                    <Todo
-                                        key={index}
-                                        todo={todo}
-                                        page={page}
-                                        handleEdit={() => handleEdit(index, todo)}
-                                        handleCompleted={() => handleCompleted(index)}
-                                    />
-                                )
-                            }) 
+                        page === 'todos'
+                            ? handleDisplay()
+                            : handleDisplay(true)
                     }
                 </View>
             </ScrollView>
@@ -141,11 +188,11 @@ export default function App() {
                 <TextInput
                     style={AppStyle.inputText}
                     placeholder='Todo description'
-                    value={todo}
-                    onChangeText={todo => handleChangeText(todo)}>
+                    value={todo.description || ''}
+                    onChangeText={handleChangeText}>
                 </TextInput>
 
-                <TouchableOpacity activeOpacity={.4} onPress={() => handleAction()}>
+                <TouchableOpacity activeOpacity={.4} onPress={todoAction === '+' ? handleAdd : handleUpdate }>
                     <View style={AppStyle.inputButton}>
                         <Text style={AppStyle.inputButtonText}>{todoAction}</Text>
                     </View>
@@ -154,3 +201,5 @@ export default function App() {
         </View>
     )
 }
+
+export default App

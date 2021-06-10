@@ -23,35 +23,33 @@ const Todo = (props) => {
 
             {
                 text: 'Yes',
-                onPress: () => handleCompleted(),
+                onPress: props.handleDelete(props.index),
             }
-        ], {cancelable: true})
+        ], { cancelable: true })
     }
 
     return (
-        <View>
-            <TouchableOpacity activeOpacity={.4} onPress={handleEdit}>
-                <View style={TodoStyle.container}>
-                    <Text style={TodoStyle.title}>{props.todo}</Text>
+        <TouchableOpacity activeOpacity={.4} onPress={handleEdit}>
+            <View style={TodoStyle.container}>
+                <Text style={TodoStyle.title}>{props.todo}</Text>
 
-                    <TouchableOpacity activeOpacity={.4} onPress={props.page === 'todos' ? handleCompleted : handleDelete}>
-                        {
-                            props.page === 'todos'
-                                ? <Icon
-                                    name='check-circle' 
-                                    type='material-icons' 
-                                    color='blue'
-                                />
-                                : <Icon
-                                    name='delete' 
-                                    type='material-icons' 
-                                    color='red'
-                                />
-                        }
-                    </TouchableOpacity>
-                </View>
-            </TouchableOpacity>
-        </View>
+                <TouchableOpacity activeOpacity={.4} onPress={props.page === 'todos' ? handleCompleted : handleDelete}>
+                    {
+                        props.page === 'todos'
+                            ? <Icon
+                                name='check-circle' 
+                                type='material-icons' 
+                                color='blue'
+                            />
+                            : <Icon
+                                name='delete' 
+                                type='material-icons' 
+                                color='red'
+                            />
+                    }
+                </TouchableOpacity>
+            </View>
+        </TouchableOpacity>
     )
 }
 
