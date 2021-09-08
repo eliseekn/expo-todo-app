@@ -36,16 +36,8 @@ const Todo = (props) => {
                 <TouchableOpacity activeOpacity={.4} onPress={props.page === 'todos' ? handleCompleted : handleDelete}>
                     {
                         props.page === 'todos'
-                            ? <Icon
-                                name='check-circle' 
-                                type='material-icons' 
-                                color='blue'
-                            />
-                            : <Icon
-                                name='delete' 
-                                type='material-icons' 
-                                color='red'
-                            />
+                            ? <Icon name='check-circle' type='material-icons' color='blue' />
+                            : <Icon name='delete' type='material-icons' color='red' />
                     }
                 </TouchableOpacity>
             </View>
